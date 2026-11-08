@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<title>push</title>
+<link rel="stylesheet" href="/admin.css">
+<script type="module" src="/admin.js"></script>
+</head>
+<body>
+<main class="page">
+  <header class="head">
+    <h1>push</h1>
+    <p class="state" id="state"><span class="dot"></span><span id="state-text">连接中…</span></p>
+  </header>
+
+  <section>
+    <h2>战报</h2>
+    <form id="report" class="row">
+      <select name="mode" aria-label="预览范围">
+        <option value="daily">下一次定时战报</option>
+        <option value="dates">按日期</option>
+      </select>
+      <span class="row" id="dates" hidden>
+        <input type="date" name="from" aria-label="开始日期">
+        <span class="muted">至</span>
+        <input type="date" name="to" aria-label="结束日期">
+      </span>
+      <button type="submit">预览</button>
+      <span class="spacer"></span>
+      <span class="row" id="send-controls" hidden>
+        <label for="target" class="muted">发到</label>
+        <select name="target" id="target"></select>
+        <button type="button" class="quiet" id="rename" title="QQ 不提供群名，可以给它起个备注">备注</button>
+        <label class="toggle" title="勾选后每天定时把过去 24 小时的战报发到这里"><input type="checkbox" id="daily-toggle">每天定时发</label>
+        <button type="button" class="primary" id="send">发送</button>
+      </span>
+      <span class="muted" id="no-targets" hidden>还没有可发送的群：在群里 @机器人 发一次 push，那个群就会出现在这里</span>
+    </form>
+    <p class="note" id="daily-line"></p>
+    <p class="note" id="report-note"></p>
+    <figure class="preview" id="preview" hidden><img id="preview-img" alt="战报预览"></figure>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>成员</h2>
+      <span class="muted" id="members-count"></span>
+      <span class="spacer"></span>
+      <button type="button" class="quiet" id="sync">同步新成员</button>
+    </div>
+    <form class="row add" id="add-member">
+      <input type="text" name="doc" placeholder="粘贴进度文档链接，手动添加成员" aria-label="文档链接" required>
+      <button type="submit">添加</button>
+    </form>
+    <p class="note">改昵称后按回车保存；不想统计某人就勾「忽略」。</p>
+    <ul class="members" id="members"></ul>
+  </section>
+
+  <section>
+    <h2>最近活动</h2>
+    <ol class="log" id="log"></ol>
+  </section>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
