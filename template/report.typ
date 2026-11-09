@@ -13,7 +13,6 @@
 #let accent = rgb("#3FD0C2")
 #let rule = rgb("#1F2633")
 #let star = rgb("#C9D1D9")
-#let danger = rgb("#FF7B72")
 #let code-bg = rgb("#1A202B")
 #let quote-bar = rgb("#2D3545")
 
@@ -169,13 +168,6 @@
   v(8pt, weak: true)
   // 每个名字放进 box，换行时不会把名字拆开
   text(fill: muted, data.idle.map(n => box(n)).join([ #h(4pt)·#h(4pt) ]))
-}
-
-#if data.errors.len() > 0 {
-  v(14pt)
-  for err in data.errors {
-    block(above: 3pt, text(size: 9pt, fill: danger)[#err.name 读取失败：#err.message])
-  }
 }
 
 #v(32pt)

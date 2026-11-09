@@ -8,7 +8,7 @@ use anyhow::Result;
 
 use crate::App;
 use crate::qq::Target;
-use crate::report::{self, Window};
+use crate::report::Window;
 use crate::status::Level;
 
 const MAX_DAYS: u32 = 30;
@@ -43,7 +43,7 @@ pub async fn handle(app: &App, target: Target, content: &str, msg_id: &str) -> R
         tracing::warn!("记录会话失败: {e:#}");
     }
     let members = app.current_members().await?;
-    let report = report::build(&app.outline, members, Window::recent_days(days)).await;
+    let report = app.build_report(members, Window::recent_days(days)).await;
     // 出图失败（渲染或上传）时退回文字版
     let sent = match app.renderer.render(&report, &app.outline).await {
         Ok(png) => app.qq.send_image(&target, &png, Some(msg_id)).await,

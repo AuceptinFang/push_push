@@ -65,6 +65,22 @@ impl App {
         }
         members::load(&self.members_file)
     }
+
+    /// 出战报。读取失败的文档不进战报，只记到管理页的最近活动
+    pub async fn build_report(
+        &self,
+        members: Vec<members::Member>,
+        window: report::Window,
+    ) -> report::Report {
+        let report = report::build(&self.outline, members, window).await;
+        for f in &report.failed {
+            self.status.record(
+                status::Level::Warn,
+                format!("{} 读取失败，未计入战报：{}", f.name, f.error),
+            );
+        }
+        report
+    }
 }
 
 pub struct MembersSync {
@@ -95,10 +111,10 @@ fn env_or(name: &str, default: &str) -> String {
 }
 
 fn outline_client() -> Result<outline::OutlineClient> {
-    Ok(outline::OutlineClient::new(
+    outline::OutlineClient::new(
         env_or("OUTLINE_URL", "https://docs.buptmerak.cn"),
         env("OUTLINE_API_KEY")?,
-    ))
+    )
 }
 
 #[tokio::main]

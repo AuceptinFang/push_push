@@ -18,7 +18,7 @@ use serde_json::json;
 
 use crate::App;
 use crate::members::{self, display_name, doc_id, looks_like_real_name};
-use crate::report::{self, Window, tz};
+use crate::report::{Window, tz};
 use crate::status::Level;
 
 const INDEX_HTML: &str = include_str!("../web/admin.html");
@@ -418,7 +418,7 @@ async fn render(app: &App, range: &ReportRange) -> ApiResult<Vec<u8>> {
     let window = range.window(app)?;
     // 和 QQ 命令、定时战报一样，出图前先自动加新成员
     let list = app.current_members().await?;
-    let report = report::build(&app.outline, list, window).await;
+    let report = app.build_report(list, window).await;
     Ok(app.renderer.render(&report, &app.outline).await?)
 }
 

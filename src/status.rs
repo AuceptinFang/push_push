@@ -15,6 +15,9 @@ pub struct Gateway {
     pub connected_at: Option<DateTime<Utc>>,
     pub last_error: Option<String>,
     pub disconnects: u32,
+    /// 服务端要求的例行重连（约每小时一次）进行中，恢复后不记活动
+    #[serde(skip)]
+    planned: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -70,17 +73,26 @@ impl Status {
 
     pub fn online(&self, bot_name: Option<String>) {
         let mut g = self.gateway.lock().unwrap();
-        g.online = true;
-        g.connected_at = Some(Utc::now());
         if bot_name.is_some() {
             g.bot_name = bot_name;
         }
+        if std::mem::take(&mut g.planned) && g.online {
+            return;
+        }
+        g.online = true;
+        g.connected_at = Some(Utc::now());
         drop(g);
         self.record(Level::Info, "网关已连接");
     }
 
+    /// 服务端要求重连：马上就会 Resume 回来，状态保持在线，不记活动
+    pub fn reconnecting(&self) {
+        self.gateway.lock().unwrap().planned = true;
+    }
+
     pub fn offline(&self, error: String) {
         let mut g = self.gateway.lock().unwrap();
+        g.planned = false;
         g.online = false;
         g.disconnects += 1;
         g.last_error = Some(error.clone());

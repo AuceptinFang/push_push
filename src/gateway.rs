@@ -37,7 +37,7 @@ pub async fn run(app: Arc<App>) {
     loop {
         match connect_once(&app, &mut session).await {
             Ok(()) => {
-                app.status.offline("服务端要求重连".into());
+                app.status.reconnecting();
                 backoff = 1;
             }
             Err(e) => {

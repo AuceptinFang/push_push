@@ -30,7 +30,6 @@ struct Data {
     total: usize,
     entries: Vec<EntryData>,
     idle: Vec<String>,
-    errors: Vec<ErrorData>,
     footer: String,
 }
 
@@ -45,12 +44,6 @@ struct EntryData {
     removed: usize,
     /// 新增内容的原始 markdown（全部，不截断），由模板里的 cmarker 渲染
     markdown: String,
-}
-
-#[derive(Serialize)]
-struct ErrorData {
-    name: String,
-    message: String,
 }
 
 impl Renderer {
@@ -191,17 +184,6 @@ impl Renderer {
                 .iter()
                 .filter(|e| matches!(e.status, Status::Idle))
                 .map(|e| e.name.clone())
-                .collect(),
-            errors: report
-                .entries
-                .iter()
-                .filter_map(|e| match &e.status {
-                    Status::Error(m) => Some(ErrorData {
-                        name: e.name.clone(),
-                        message: m.clone(),
-                    }),
-                    _ => None,
-                })
                 .collect(),
             footer: "Merak CTF Team · docs.buptmerak.cn".into(),
         };

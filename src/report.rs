@@ -75,7 +75,6 @@ pub enum Status {
         at: DateTime<Utc>,
     },
     Idle,
-    Error(String),
 }
 
 #[derive(Debug)]
@@ -88,49 +87,65 @@ pub struct Entry {
     pub status: Status,
 }
 
+/// 读取失败的文档：不进战报，由调用方记到管理页的最近活动
+#[derive(Debug)]
+pub struct Failed {
+    pub name: String,
+    pub error: String,
+}
+
 pub struct Report {
     pub window: Window,
     pub entries: Vec<Entry>,
+    pub failed: Vec<Failed>,
 }
 
 pub async fn build(outline: &OutlineClient, members: Vec<Member>, window: Window) -> Report {
-    let entries: Vec<Option<Entry>> = stream::iter(members.into_iter().filter(|m| !m.ignore))
-        .map(|m| async move {
-            match member_entry(outline, &m, window).await {
-                Ok(e) => e,
-                Err(e) => Some(Entry {
+    let results: Vec<Result<Option<Entry>, Failed>> =
+        stream::iter(members.into_iter().filter(|m| !m.ignore))
+            .map(|m| async move {
+                member_entry(outline, &m, window).await.map_err(|e| {
                     // 读取失败时拿不到标题，用 alias 或自动加入时记下的标题，再不行就显示链接
-                    name: display_name(
+                    let name = display_name(
                         m.alias.as_deref(),
                         None,
                         m.title.as_deref().unwrap_or_default(),
                     )
-                    .unwrap_or_else(|| m.doc.clone()),
-                    user: None,
-                    doc_title: String::new(),
-                    doc_url: m.doc.clone(),
-                    updated_at: None,
-                    status: Status::Error(format!("{e:#}")),
-                }),
-            }
-        })
-        .buffered(4)
-        .collect()
-        .await;
-    let mut entries: Vec<Entry> = entries.into_iter().flatten().collect();
-    // 有更新的排前面，最近更新的在前；未更新的接在后面，最久没更新的在前（最该被 push）；读取失败的放最后
+                    .unwrap_or_else(|| m.doc.clone());
+                    tracing::warn!("{name} 读取失败，不计入战报: {e:#}");
+                    Failed {
+                        name,
+                        error: format!("{e:#}"),
+                    }
+                })
+            })
+            .buffered(4)
+            .collect()
+            .await;
+    let mut entries = Vec::new();
+    let mut failed = Vec::new();
+    for r in results {
+        match r {
+            Ok(e) => entries.extend(e),
+            Err(f) => failed.push(f),
+        }
+    }
+    // 有更新的排前面，最近更新的在前；未更新的接在后面，最久没更新的在前（最该被 push）
     entries.sort_by(|a, b| {
         let group = |e: &Entry| match e.status {
             Status::Updated { .. } => 0,
             Status::Idle => 1,
-            Status::Error(_) => 2,
         };
         group(a).cmp(&group(b)).then_with(|| match a.status {
             Status::Updated { .. } => b.updated_at.cmp(&a.updated_at),
-            _ => a.updated_at.cmp(&b.updated_at),
+            Status::Idle => a.updated_at.cmp(&b.updated_at),
         })
     });
-    Report { window, entries }
+    Report {
+        window,
+        entries,
+        failed,
+    }
 }
 
 /// 定不出显示名（见 members::display_name）时返回 None，这篇文档不进战报
@@ -325,11 +340,6 @@ impl Report {
             .collect();
         if !idle.is_empty() {
             out += &format!("\n😴 未更新：{}\n", idle.join("、"));
-        }
-        for e in &self.entries {
-            if let Status::Error(msg) = &e.status {
-                out += &format!("\n⚠️ {} 读取失败：{msg}\n", e.name);
-            }
         }
         out
     }

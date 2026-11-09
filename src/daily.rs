@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Days, Local, NaiveTime, TimeZone, Utc};
 
 use crate::App;
-use crate::report::{self, Window};
+use crate::report::Window;
 use crate::status::Level;
 
 const WINDOW_HOURS: i64 = 24;
@@ -77,7 +77,7 @@ async fn send(app: &App, window: Window) -> Result<()> {
             .record(Level::Info, "定时战报：成员名单为空，跳过");
         return Ok(());
     }
-    let report = report::build(&app.outline, members, window).await;
+    let report = app.build_report(members, window).await;
     let png = match app.renderer.render(&report, &app.outline).await {
         Ok(png) => Some(png),
         Err(e) => {
